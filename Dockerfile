@@ -3,16 +3,16 @@ FROM maven:3.9.9-eclipse-temurin-21 AS builder
 
 WORKDIR /app
 
-ARG GITHUB_TOKEN
+# Copy the parent POM and install it
+COPY ./pom.xml /app/
 
-# Fetch the parent POM from GitHub and install it
-RUN curl -fsSL https://raw.githubusercontent.com/Deathrow002/Core-Banking/master/pom.xml -o /app/pom.xml
+# Install all dependencies (including Discovery)
 RUN mvn clean install -N
 
-# Clone the Discovery service from GitHub
-RUN git clone --branch main --single-branch https://${GITHUB_TOKEN}@github.com/Deathrow002/Core-Banking-Discovery.git Discovery
+# Copy the entire Discovery module (including pom.xml and src/)
+COPY ./Discovery /app/Discovery
 
-# Build the Discovery service
+# Build the Account service
 RUN mvn clean package -DskipTests -f Discovery/pom.xml
 
 # Runtime Stage
@@ -21,7 +21,6 @@ FROM eclipse-temurin:21-jre-jammy
 # Install wget and curl
 RUN apt-get update && \
 	DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends wget curl && \
-	apt-get upgrade -y && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
